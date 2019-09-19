@@ -172,7 +172,7 @@ def top_10_weapons(username, weapons_data):
     ###figure time
     #fig = px.bar(weapons_top_10, x='name', y='kills', labels = {"name":"Weapon", "kills":"Kills"})
     fig = go.Figure()
-    for bf1_class in set(weapons_top_10["class"]):
+    for bf1_class in sorted(list(set(weapons_top_10["class"]))):
         class_weapons = weapons_top_10[weapons_top_10["class"] == bf1_class]
         fig.add_trace(
             go.Bar(
