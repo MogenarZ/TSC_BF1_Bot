@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 plotly.io.orca.config.executable = r"C:\Users\Alexander\AppData\Local\Programs\orca\orca.exe"
 
 #####GLOBAL
-bf1_classes = ["Tanker/Pilot", "Assault", "Medic", "Support", "Scout", "All"]
+bf1_classes = ["Tanker/Pilot", "Assault", "Medic", "Support", "Scout", "Elite", "All"]
 
 smgs = ["MP 18", "Automatico M1918", "Hellriegel 1915", "Annihilator", "M1919 SMG", "Ribeyrolles 1918", "SMG 08/18", "M1917 Trench Carbine", "Maschinenpistole M1912/P.16", "RSC SMG"]
 shotguns = ["M97 Trench Gun", "Model 10-A", "12g Automatic", "Sjögren Inertial", "Model 1900"]
