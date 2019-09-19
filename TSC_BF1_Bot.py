@@ -213,16 +213,22 @@ bot = commands.Bot(command_prefix='!')
 @bot.command(name='bf1basicstats', help = "gives basic Battlefield 1 stats")
 async def bf1_basic_stats(ctx, username):
     web_data, web_chunks = read_bf1stats(username)
-    rank = web_data.findAll("article")[0].find("div").findAll("div")[1].text.split(" ")[0]
-    image = get_general_stats(username, int(rank), web_chunks["General stats"], web_chunks["Combat stats"], web_chunks["Rankings"])
-    #https://stackoverflow.com/questions/50860397/discord-py-bot-sending-file-to-discord-channel
-    await ctx.channel.send("Battlefield 1 Stats for "+username+" :", file = discord.File(image))
+    if "Player not found" in web_chunks:
+        await ctx.channel.send(username+" does not exist!")
+    else:
+        rank = web_data.findAll("article")[0].find("div").findAll("div")[1].text.split(" ")[0]
+        image = get_general_stats(username, int(rank), web_chunks["General stats"], web_chunks["Combat stats"], web_chunks["Rankings"])
+        #https://stackoverflow.com/questions/50860397/discord-py-bot-sending-file-to-discord-channel
+        await ctx.channel.send("Battlefield 1 Stats for "+username+" :", file = discord.File(image))
 
 @bot.command(name='bf1top10weapons', help = "shows a chart of top 10 weapons by kills")
 async def bf1_basic_stats(ctx, username):
     web_data, web_chunks = read_bf1stats(username)
-    image = top_10_weapons(username, web_chunks["Weapons"])
-    await ctx.channel.send("BF1 Top 10 Weapons by Kills for "+username+" :", file = discord.File(image))
+    if "Player not found" in web_chunks:
+        await ctx.channel.send(username+" does not exist!")
+    else:
+        image = top_10_weapons(username, web_chunks["Weapons"])
+        await ctx.channel.send("BF1 Top 10 Weapons by Kills for "+username+" :", file = discord.File(image))
 
 
 bot.run(token)
