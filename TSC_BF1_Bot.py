@@ -31,6 +31,9 @@ gear_medic = ["Rifle Grenade"]
 gear_support = ["Limpet Charge", "Mortar", "Repair Tool", "Crossbow Launcher"]
 gear_scout = ["K Bullet", "Flare Gun", "Tripwire Bomb"]
 
+tanks = ["Landship", "Assault Tank", "Artillery Truck", "Heavy Tank", "Light Tank", "Assault Truck"]
+planes = ["Heavy Bomber", "Attack Plane", "Airship", "Bomber", "Fighter"]
+
 weapons_by_class = {"Assault":smgs + shotguns + pistols_assault + gear_assault,
                     "Medic":sl_rifles + pistols_medic + gear_medic,
                     "Support":lmgs + pistols_support + gear_support,
@@ -50,6 +53,21 @@ def read_bf1stats(username):
     r = requests.get("http://bf1stats.com/pc/" + username)
     web_data = bs4.BeautifulSoup(r.text, "html.parser")
     return web_data, {item.header.get_text():item for item in web_data.findAll("article") if item.header is not None}
+
+###BF1 stats doesn't have DLC vehicle info
+def read_bf1tracker_vehicles(username):
+    """pulls vehicle information from BF1Tracker"""
+    r = requests.get("https://battlefieldtracker.com/bf1/profile/pc/"+username+"/vehicles")
+    web_data = bs4.BeautifulSoup(r.text, "html.parser")
+
+    vehicles_info = []
+    for piece in web_data.find("tbody").findAll("tr"):
+        if piece.findAll("td")[0].findAll("div") != []:
+            #print(piece.findAll("td")[0].findAll("div"))
+            name = piece.find("td").find("div").text.title().strip()
+            kills = piece.findAll("td")[1].find("div").text
+            vehicles_info.append({"name":name, "kills":int(kills)})
+    return pd.DataFrame(vehicles_info)
 
 
 def process_bf1stats_line(out_dict, line, attributes):
@@ -198,8 +216,7 @@ def top_10_weapons(username, weapons_data):
 
 
 #####MAIN
-#web_data, web_chunks = read_bf1stats("MogenarZ")
-#image = top_10_weapons("MogenarZ", web_chunks["Weapons"])
+#read_bf1tracker_vehicles("MogenarZ")
 #sys.exit()
 
 ###Discord setup
