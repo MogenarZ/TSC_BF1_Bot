@@ -46,6 +46,7 @@ rec_y = 500
 
 #####FUNCTIONS
 def read_bf1stats(username):
+    """basic initial parsing of BF1Stats page"""
     r = requests.get("http://bf1stats.com/pc/" + username)
     web_data = bs4.BeautifulSoup(r.text, "html.parser")
     return web_data, {item.header.get_text():item for item in web_data.findAll("article") if item.header is not None}
