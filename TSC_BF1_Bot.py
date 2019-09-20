@@ -7,16 +7,19 @@ from PIL import Image, ImageDraw, ImageFont
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-plotly.io.orca.config.executable = r"C:\Users\Alexander\AppData\Local\Programs\orca\orca.exe"
+import plotly.io as pio
+#pio.orca.config.use_xvfb = True
+#plotly.io.orca.config.executable = r"C:\Users\Alexander\AppData\Local\Programs\orca\orca.exe"
+plotly.io.orca.config.executable = "/opt/orca/squashfs-root/app/orca"
 
 #####GLOBAL
 bf1_classes = ["Tanker/Pilot", "Assault", "Medic", "Support", "Scout", "Elite", "All"]
 
 smgs = ["MP 18", "Automatico M1918", "Hellriegel 1915", "Annihilator", "M1919 SMG", "Ribeyrolles 1918", "SMG 08/18", "M1917 Trench Carbine", "Maschinenpistole M1912/P.16", "RSC SMG"]
 shotguns = ["M97 Trench Gun", "Model 10-A", "12g Automatic", "Sjögren Inertial", "Model 1900"]
-sl_rifles = ["Cei-Rigotti", "Selbstlader M1916", "M1907 SL", "Mondragón", "Autoloading 8", "Selbstlader 1906", "Fedorov-Degtyarev", "RSC 1917", "Fedorov Avtomat", "General Liu Rifle", "Farquhar-Hill", "Howell Automatic"]
-lmgs = ["Lewis Gun", "M1909 Benét-Mercié", "Madsen MG", "MG15 n.A.", "BAR M1918", "Huot Automatic", "BAR M1918A2", "Burton LMR", "Chauchat", "Parabellum MG14/17", "Perino Model 1908", "M1917 MG", "lMG 08/18"]
-sa_rifles = ["SMLE MKIII", "Gewehr 98", "Russian 1895", "Gewehr M.95", "M1903", "Martini-Henry", "Mosin-Nagant M38 Carbine", "Lebel Model 1886", "Mosin-Nagant M91", "Vetterli-Vitali M1870/87", "Carcano M91 Carbine", "Type 38 Arisaka",
+sl_rifles = ["Cei-Rigotti", "Selbstlader M1916", "M1907 SL", "Mondragón", "Autoloading 8 .35", "Autoloading 8 .25", "Selbstlader 1906", "Fedorov-Degtyarev", "RSC 1917", "Fedorov Avtomat", "General Liu Rifle", "Farquhar-Hill", "Howell Automatic"]
+lmgs = ["Lewis Gun", "M1909 Benét–Mercié", "Madsen MG", "MG15 n.A.", "BAR M1918", "Huot Automatic", "BAR M1918A2", "Burton LMR", "Chauchat", "Parabellum MG14/17", "Perino Model 1908", "M1917 MG", "lMG 08/18"]
+sa_rifles = ["SMLE MKIII", "Gewehr 98", "Russian 1895", "Gewehr M.95", "M1903", "Martini-Henry", "Mosin-Nagant M38 Carbine", "Lebel Model 1886", "Mosin-Nagant M91", "Vetterli-Vitali M1870/87", "Carcano M91", "Type 38 Arisaka",
             "Ross MkIII", "M1917 Enfield"]
 carbine_pistols = ["C96 Carbine", "Frommer Stop Auto", "M1911 Extended", "Pieper M1893", "P08 Artillerie", "Mle 1903 Extended", "C93 Carbine", "Sawed Off Shotgun"]
 pistols_all = ["M1911", "P08 Pistol", "Mle 1903", "No. 3 Revolver", "C93", "Kolibri", "M1911A1", "Peacekeeper", "Nagant Revolver", "Obrez Pistol", "Revolver Mk VI"]
@@ -31,16 +34,20 @@ gear_medic = ["Rifle Grenade"]
 gear_support = ["Limpet Charge", "Mortar", "Repair Tool", "Crossbow Launcher"]
 gear_scout = ["K Bullet", "Flare Gun", "Tripwire Bomb"]
 
+suffixes = ["Patrol Carbine", "Factory", "Trench", "Storm", "Optical", "Marksman", "Sniper", "Backbored", "Hunter", "Slug", "Extended", "Low Weight", "Telescopic", "Suppressive", "Infantry", "Carbine", "Sweeper", "Experimental", "Defensive", "Cavalry",
+            "Silenced", "Silencer", "Patrol"]
+
 tanks = ["Landship", "Assault Tank", "Artillery Truck", "Heavy Tank", "Light Tank", "Assault Truck"]
 planes = ["Heavy Bomber", "Attack Plane", "Airship", "Bomber", "Fighter"]
 
-weapons_by_class = {"Assault":smgs + shotguns + pistols_assault + gear_assault,
-                    "Medic":sl_rifles + pistols_medic + gear_medic,
-                    "Support":lmgs + pistols_support + gear_support,
-                    "Scout":sa_rifles + pistols_scout + gear_scout,
-                    "Tanker/Pilot":carbine_pistols,
-                    "Elite":elite_weapons,
-                    "All":pistols_all}
+					
+weapons_by_class = {wep:"Assault" for wep in smgs + shotguns + pistols_assault + gear_assault}
+weapons_by_class.update({wep:"Medic" for wep in sl_rifles + pistols_medic + gear_medic})
+weapons_by_class.update({wep:"Support" for wep in lmgs + pistols_support + gear_support})
+weapons_by_class.update({wep:"Scout" for wep in sa_rifles + pistols_scout + gear_scout})
+#weapons_by_class.update({wep:"Tanker/Pilot" for wep in carbine_pistols})
+weapons_by_class.update({wep:"Elite" for wep in elite_weapons})
+weapons_by_class.update({wep:"All" for wep in pistols_all})
 
 rec_x = 500
 rec_y = 500
@@ -112,11 +119,19 @@ def process_weapon(wep_row):
         else:
             #print(td_piece.attrs.values())
             out_dict = process_bf1stats_line(out_dict, td_piece, [["kills", ".kills"], ["headshots", ".headshots"], ["shots", ".shots"], ["hits", ".hits"]])
-            ###class information
-            for bf1_class in bf1_classes:
-                if any(out_dict["name"].startswith(wep) for wep in weapons_by_class[bf1_class]):
-                    out_dict["class"] = bf1_class
-                    break
+    
+			###tanker first!
+            if out_dict["name"] in carbine_pistols:
+                out_dict["class"] = "Tanker/Pilot"
+            ###this guy's weird
+            elif out_dict["name"] in ["M1917 Trench Carbine", "M1917 Patrol Carbine"]:
+                out_dict["class"] = "Assault"
+            else:
+                for suffix in suffixes:
+                    if out_dict["name"].endswith(suffix):
+                        out_dict["class"] = weapons_by_class[out_dict["name"].replace(suffix, "").strip()]
+                        break	
+            
             if "class" not in out_dict.keys():
                 out_dict["class"] = "All"
     return out_dict
@@ -134,7 +149,8 @@ def get_general_stats(username, rank, general_data, combat_data, rankings_data):
 
     ###Initialize image magic
     #https://haptik.ai/tech/putting-text-on-image-using-python/
-    image = Image.open(r'C:\Users\Alexander\Pictures\ww1_test.png')
+    #image = Image.open(r'C:\Users\Alexander\Pictures\ww1_test.png')
+    image = Image.open('images/ww1_test.png')
     image = image.convert("RGBA")
 
     ###rectangle drawing setup
@@ -155,7 +171,8 @@ def get_general_stats(username, rank, general_data, combat_data, rankings_data):
 
     ###now add text
     draw = ImageDraw.Draw(image)
-    font = ImageFont.truetype(r'C:\Users\Alexander\Desktop\fonts\TravelingTypewriter.ttf', size=30)
+    #font = ImageFont.truetype(r'C:\Users\Alexander\Desktop\fonts\TravelingTypewriter.ttf', size=30)
+    font = ImageFont.truetype('fonts/TravelingTypewriter.ttf', size=30)
     image_text = username + "\n"
     image_text += "\n".join([cat+": "+str(user_info[cat]) for cat in ["Rank", "SPM", "KPM"]]) + "\n\n"
     image_text += "\n".join([cat+": "+str(user_info[cat]) for cat in ["Rounds", "Wins", "Losses"]]) + "\n\n"
@@ -164,8 +181,8 @@ def get_general_stats(username, rank, general_data, combat_data, rankings_data):
     #https://stackoverflow.com/questions/1970807/center-middle-align-text-with-pil
     w, h = draw.textsize(image_text, font = font)
     draw.text(((image_x-w)/2,(image_y-h)/2), image_text, fill="white", font=font, align = "center")
-    image.save("basic_stats_"+username+".png", "PNG")
-    return "basic_stats_"+username+".png"
+    image.save("images/basic_stats_"+username+".png", "PNG")
+    return "images/basic_stats_"+username+".png"
     #image.show()
     #draw.text((100,100))
     
@@ -209,15 +226,14 @@ def top_10_weapons(username, weapons_data):
     )
     #print(fig)
     #fig.show()
-    fig.write_image("top_10_weapons_"+username+".png")
-    return "top_10_weapons_"+username+".png"
+    fig.write_image("images/top_10_weapons_"+username+".png")
+    return "images/top_10_weapons_"+username+".png"
 
 
 
 
 #####MAIN
 #read_bf1tracker_vehicles("MogenarZ")
-#sys.exit()
 
 ###Discord setup
 #https://realpython.com/how-to-make-a-discord-bot-python/#how-to-make-a-discord-bot-in-the-developer-portal
