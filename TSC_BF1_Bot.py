@@ -13,7 +13,7 @@ import plotly.io as pio
 plotly.io.orca.config.executable = "/opt/orca/squashfs-root/app/orca"
 
 #####GLOBAL
-bf1_classes = ["Tanker/Pilot", "Assault", "Medic", "Support", "Scout", "Elite", "All"]
+bf1_classes = ["Tanker/Pilot", "Assault", "Medic", "Support", "Scout", "Elite", "Vehicle", "All"]
 
 smgs = ["MP 18", "Automatico M1918", "Hellriegel 1915", "Annihilator", "M1919 SMG", "Ribeyrolles 1918", "SMG 08/18", "M1917 Trench Carbine", "Maschinenpistole M1912/P.16", "RSC SMG"]
 shotguns = ["M97 Trench Gun", "Model 10-A", "12g Automatic", "Sjögren Inertial", "Model 1900"]
@@ -73,7 +73,7 @@ def read_bf1tracker_vehicles(username):
             #print(piece.findAll("td")[0].findAll("div"))
             name = piece.find("td").find("div").text.title().strip()
             kills = piece.findAll("td")[1].find("div").text
-            vehicles_info.append({"name":name, "kills":int(kills)})
+            vehicles_info.append({"name":name, "kills":int(kills.replace(",", "")), "class":"Vehicle"})
     return pd.DataFrame(vehicles_info)
 
 
@@ -132,8 +132,9 @@ def process_weapon(wep_row):
                         out_dict["class"] = weapons_by_class[out_dict["name"].replace(suffix, "").strip()]
                         break	
             
+            ###elites and unlisted weapons
             if "class" not in out_dict.keys():
-                out_dict["class"] = "All"
+                out_dict["class"] = weapons_by_class.get(out_dict["name"], "All")
     return out_dict
 
 def get_general_stats(username, rank, general_data, combat_data, rankings_data):
@@ -190,13 +191,22 @@ def get_general_stats(username, rank, general_data, combat_data, rankings_data):
     #image.show()
 
 
-def top_10_weapons(username, weapons_data):
+def top_10_weapons(username, weapons_data, use_vehicles):
     """graphs user's top 10 weapons"""
     weapons = []
     for row in weapons_data.find("div").find("table").find_all("tr")[1:]:
         weapons.append(process_weapon(row))
         
     weapons_frame = pd.DataFrame(weapons)
+
+    ###include vehicles if desired
+    if use_vehicles:
+        weapons_frame = pd.concat([weapons_frame, read_bf1tracker_vehicles(username)], sort = False)
+        filename = "images/top_10_"+username+".png"
+        plot_title = username + ' : Top 10 by Kills'
+    else:
+        filename = "images/top_10_weapons_"+username+".png"
+        plot_title = username + ' : Top 10 Weapons by Kills'
 
     weapons_top_10 = weapons_frame.sort_values(by=["kills"], ascending = False).reset_index(drop=True).head(10)[["name","kills","class"]]
 
@@ -217,7 +227,7 @@ def top_10_weapons(username, weapons_data):
             marker = dict(color=px.colors.sequential.Viridis[bf1_classes.index(bf1_class)]),
             name = bf1_class
         ))
-    fig.update_layout(title_text=username + ' : Top 10 Weapons by Kills',
+    fig.update_layout(title_text=plot_title,
                         showlegend = True,
                         xaxis = {
                             'categoryorder': 'array',
@@ -226,8 +236,10 @@ def top_10_weapons(username, weapons_data):
     )
     #print(fig)
     #fig.show()
-    fig.write_image("images/top_10_weapons_"+username+".png")
-    return "images/top_10_weapons_"+username+".png"
+        
+    
+    fig.write_image(filename)
+    return filename
 
 
 
@@ -261,8 +273,17 @@ async def bf1_top_10_weapons(ctx, username):
     if "Player not found" in web_chunks:
         await ctx.channel.send(username+" does not exist!")
     else:
-        image = top_10_weapons(username, web_chunks["Weapons"])
+        image = top_10_weapons(username, web_chunks["Weapons"], False)
         await ctx.channel.send("BF1 Top 10 Weapons by Kills for "+username+" :", file = discord.File(image))
+
+@bot.command(name='bf1top10all', help = "shows a chart of top 10 weapons/vehicles by kills")
+async def bf1_top_10_all(ctx, username):
+    web_data, web_chunks = read_bf1stats(username)
+    if "Player not found" in web_chunks:
+        await ctx.channel.send(username+" does not exist!")
+    else:
+        image = top_10_weapons(username, web_chunks["Weapons"], True)
+        await ctx.channel.send("BF1 Top 10 by Kills for "+username+" :", file = discord.File(image))
 
 
 bot.run(token)
